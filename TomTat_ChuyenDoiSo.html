@@ -738,7 +738,7 @@ body.lock-busy .lock-wait { display: block; }
   </div>
 </div>
 <noscript><p style="text-align:center">Trình duyệt cần bật JavaScript để mở tài liệu.</p></noscript>
-<script type="application/json" id="enc">{"v": 2, "s": "ZW4moe4sjlOMusVWvzzV0w==", "i": 310000, "iv": "sz+62Wzxu6eO5DDk", "to": 30, "src": "trang/TomTat_ChuyenDoiSo.b33fbad96cf1bba7.bin", "n": 1081983, "h": "69c126eab9b58d3b02551603ae7852cc12de09cdd53ec7cd5d4aa0189a7b5b0f", "cdn": "https://thiqh2026.pages.dev/", "w": [{"iv": "zgr0t145QQEg0MQV", "c": "aIrgnkQbz6WRNsMFgJY6I75V3csnWTyicONCurD7dM4z8YZaM55hMADCPL4vpBDj"}, {"iv": "JNrihMMg7LcPaAGH", "c": "9OXuukZsLXCxLFxq2701mKKDaC4A0yc0opoydityYeR9qrKrip72c/i7el+o37qF"}, {"iv": "sTNzAW5RWhzwCmKH", "c": "5bwajSDz5OoPkoSd47OBnUFkNtTjJ/i3qED7S7zXnHEE1s2u7YJPThU88Qkszr/0"}, {"iv": "xgkMnwJi+AsqF5gW", "c": "MOFu/Sd8n8UlXQ7LkwhFHB3zMAHs2NyG9JxRx+r+5A6pIUJVeQRoWxcv8FkQ8ST7"}]}</script>
+<script type="application/json" id="enc">{"v": 2, "s": "ZW4moe4sjlOMusVWvzzV0w==", "i": 310000, "iv": "vP0CUxvEKrWAoByV", "to": 30, "src": "trang/TomTat_ChuyenDoiSo.bcfd02531bc42ab5.bin", "n": 1104277, "h": "1a64f2eadbef394be5a93ee877122b196fb93c09565edb7eb1b8439c6eee1a09", "cdn": "https://thiqh2026.pages.dev/", "w": [{"iv": "5X0AeVh9xlnwW82y", "c": "H3FwQPdEh5NvXrtcBg89+2ef9wQIMynwMUaJCCZKtQa5FGZ97/ab7rHUi5dJfC8X"}, {"iv": "UEkzmHBqaj0NruC/", "c": "aFedoezYfRPvsAx7O9RZl29Ku2CtEkeNtERsoVV4S/VS3JsadB+22u3vIbF7mIPk"}, {"iv": "qKRNAoSZwdwErHzv", "c": "g3oghS+VboPXs/2XACzLLfpHdUnAUYOmxFm3ezuZROHGzLOhuGzObw0orpPBvxdc"}, {"iv": "0JG6PZzCEhR+jW0O", "c": "uduVIW8YY99Q+tme8yZA7rtwhfmWIbovCP79Xkguu7Hid8yvVsgf4HZTH3+oHynQ"}]}</script>
 <script>/* ===== Màn hình khóa (bản web): giải mã trang bằng mật khẩu — AES-GCM 256, khóa dẫn xuất PBKDF2-SHA256 =====
    Mật khẩu KHÔNG phân biệt hoa/thường, bỏ khoảng trắng đầu/cuối (phải khớp set_password trong tools/build_web.py).
    Nội dung trang được mã hóa sẵn khi dựng (tools/build_web.py); không có mật khẩu thì không đọc được.
@@ -779,14 +779,18 @@ body.lock-busy .lock-wait { display: block; }
     if (ctP) return ctP;
     if (P.ct) { ctP = Promise.resolve(u8(P.ct)); return ctP; }
     taiLoi = false;
+    /* ms: chờ phần đầu trả lời tối đa ms (0 = theo hạn tổng); hạn tổng 120 giây cho cả thân tệp — mạng nhỏ giọt thì báo lỗi mạng,
+       bấm lại để tải lại (trước đây màn khóa treo mãi ở "Đang mở tài liệu…" — review 16/11) */
     function lay(url, ms) {
-      var ac = window.AbortController ? new AbortController() : null, t = null;
-      if (ac && ms) t = setTimeout(function () { ac.abort(); }, ms);           /* chỉ chờ phần đầu trả lời; tải thân tệp không giới hạn */
+      var ac = window.AbortController ? new AbortController() : null, t = null, tong = null;
+      if (ac && ms) t = setTimeout(function () { ac.abort(); }, ms);
+      if (ac) tong = setTimeout(function () { ac.abort(); }, 120000);
       return fetch(url, ac ? { signal: ac.signal } : undefined).then(function (r) {
         clearTimeout(t);
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.arrayBuffer();
-      }, function (e) { clearTimeout(t); throw e; }).then(function (buf) {
+      }, function (e) { clearTimeout(t); clearTimeout(tong); throw e; }).then(function (buf) {
+        clearTimeout(tong);
         if (P.n && buf.byteLength !== P.n) throw new Error('sai cỡ');
         return crypto.subtle.digest('SHA-256', buf).then(function (d) {
           if (P.h && hex(d) !== P.h) throw new Error('sai mã băm');
